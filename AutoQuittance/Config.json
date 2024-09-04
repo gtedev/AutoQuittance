@@ -1,0 +1,21 @@
+﻿{
+  "templates": [
+    {
+      "pathFile": "",
+      "outputFile": "",
+      "properties": {
+        "Proprietaire.Prenom": "",
+        "Proprietaire.Nom": "",
+        "Proprietaire.Rue": "",
+        "Proprietaire.CodePostalVille": "",
+        "Locataire.Prenom": "",
+        "Locataire.Nom": "",
+        "Locataire.Rue": "",
+        "Locataire.CodePostalVille": "",
+        "Loyer": " €",
+        "Charges": "€",
+        "Total": "€"
+      }
+    }
+  ]
+}

@@ -6,6 +6,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="Config.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Compile Include="Pdf.fs" />
+    <Compile Include="Config.fs" />
+    <Compile Include="Email.fs" />
+    <Compile Include="Excel.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
