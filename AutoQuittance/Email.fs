@@ -1,39 +1,70 @@
-﻿module Email
+﻿module Email 
 
-open System.Net
-open System.Net.Mail
+open System
+open System.IO
+open System.Threading
+open Google.Apis.Auth.OAuth2
+open Google.Apis.Gmail.v1
+open Google.Apis.Gmail.v1.Data
+open Google.Apis.Services
+open Google.Apis.Util.Store
+open MimeKit
 
-type SendEmailRequest =
-    { fromEmail: string
-      toEmail: string
-      pathFileAttachment: string
-      smtpServer: string
-      emailCredentials: {| email: string; password: string |} }
+let Scopes = [| GmailService.Scope.GmailSend |]
+let ApplicationName = "Gmail API F# Quickstart"
 
-let sendEmailWithAttachment request =
-    try
-        let mail = new MailMessage()
-        mail.From <- MailAddress(request.fromEmail)
+let sendEmailWithAttachment () =
+    let credential =
+        use stream = new FileStream("", FileMode.Open, FileAccess.Read)
+        let credPath = "token.json"
+        GoogleWebAuthorizationBroker.AuthorizeAsync(
+            GoogleClientSecrets.FromStream(stream).Secrets,
+            Scopes,
+            "user",
+            CancellationToken.None,
+            new FileDataStore(credPath, true)
+        ).Result
 
-        mail.To.Add(request.toEmail)
-        mail.Subject <- "Quittance de loyer"
-        mail.Body <- "This is a test email with an attachment sent from an F# application."
+    // Create Gmail API service.
+    let service = 
+        new GmailService(new BaseClientService.Initializer(
+            HttpClientInitializer = credential,
+            ApplicationName = ApplicationName
+        ))
 
-        // If you want to send HTML email
-        // mail.IsBodyHtml <- true
+    // Create the email to send
+    let msg = new MimeMessage()
+    msg.From.Add(MailboxAddress("User1", "user1@gmail.com"))
+    msg.To.Add(MailboxAddress("User2", "user2.te@gmail.com"))
+    msg.Subject <- "Test Email with PDF Attachment from Gmail API"
 
-        // Specify the file to attach
-        let attachment = new Attachment(request.pathFileAttachment)
-        mail.Attachments.Add(attachment)
+    // Create the body of the email
+    let body = new TextPart("plain")
+    body.Text <- "This is a test email sent using Gmail API with F#."
 
-        // Configure the SMTP client
-        let smtpClient = new SmtpClient(request.smtpServer, 587)
-        smtpClient.Credentials <- NetworkCredential(request.emailCredentials.email, request.emailCredentials.password)
-        smtpClient.DeliveryMethod <- SmtpDeliveryMethod.Network
-        smtpClient.UseDefaultCredentials  <- false
-        smtpClient.EnableSsl <- true
+    // Attach the PDF file
+    let attachment = new MimePart("application", "pdf")
+    attachment.Content <- new MimeContent(File.OpenRead("C:\\toto.pdf"))
+    attachment.ContentDisposition <- new ContentDisposition(ContentDisposition.Attachment)
+    attachment.ContentTransferEncoding <- ContentEncoding.Base64
+    attachment.FileName <- "toto.pdf"
 
-        // Send the email
-        smtpClient.Send(mail)
-    with ex ->
-        printfn "Error sending email: %s" ex.Message
+    // Create the multipart email
+    let multipart = new Multipart("mixed")
+    multipart.Add body
+    multipart.Add attachment
+    msg.Body <- multipart
+
+    // Encode the email as base64url and prepare it for sending
+    use memoryStream = new MemoryStream()
+    msg.WriteTo(memoryStream)
+    let raw = Convert.ToBase64String(memoryStream.ToArray())
+                .Replace('+', '-')
+                .Replace('/', '_')
+                .Replace("=", "")
+
+    let gmailMessage = new Message(Raw = raw)
+
+    // Send the email
+    service.Users.Messages.Send(gmailMessage, "me").Execute() |> ignore
+    printfn "Email with PDF attachment sent successfully!"
