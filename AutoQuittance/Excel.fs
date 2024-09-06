@@ -87,11 +87,12 @@ let replaceTextInExcel (t: Template) =
             |> Map<string, string>
             |> Map.fold replaceText cellValue
 
-        updateCellValue cell newCellValue
+        // Update only if there is new value to replace
+        if(newCellValue <> cellValue) then
+            updateCellValue cell newCellValue
         ())
 
     worksheetPart.Worksheet.Save()
-    document.Save()
 
     // To make sure, the changes are flushed to the file.
     document.Close()
