@@ -3,18 +3,13 @@
     {
       "pathFile": "",
       "outputFile": "",
-      "properties": {
-        "Proprietaire.Prenom": "",
-        "Proprietaire.Nom": "",
-        "Proprietaire.Rue": "",
-        "Proprietaire.CodePostalVille": "",
-        "Locataire.Prenom": "",
-        "Locataire.Nom": "",
-        "Locataire.Rue": "",
-        "Locataire.CodePostalVille": "",
-        "Loyer": " €",
-        "Charges": "€",
-        "Total": "€"
+      "period": {
+        "startDayInMonth": 1,
+        "sendDayInMonth": 5
+      },
+      "displayComputedProperties": [ "StartDate", "EndDate", "SentDate" ],
+      "displayCustomProperties": {
+        "Proprietaire.Nom": "Toto"
       }
     }
   ]

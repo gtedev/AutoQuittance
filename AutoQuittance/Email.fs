@@ -1,4 +1,4 @@
-﻿module Email 
+﻿module Email
 
 open System
 open System.IO
@@ -17,20 +17,22 @@ let sendEmailWithAttachment () =
     let credential =
         use stream = new FileStream("", FileMode.Open, FileAccess.Read)
         let credPath = "token.json"
-        GoogleWebAuthorizationBroker.AuthorizeAsync(
-            GoogleClientSecrets.FromStream(stream).Secrets,
-            Scopes,
-            "user",
-            CancellationToken.None,
-            new FileDataStore(credPath, true)
-        ).Result
+
+        GoogleWebAuthorizationBroker
+            .AuthorizeAsync(
+                GoogleClientSecrets.FromStream(stream).Secrets,
+                Scopes,
+                "user",
+                CancellationToken.None,
+                new FileDataStore(credPath, true)
+            )
+            .Result
 
     // Create Gmail API service.
-    let service = 
-        new GmailService(new BaseClientService.Initializer(
-            HttpClientInitializer = credential,
-            ApplicationName = ApplicationName
-        ))
+    let service =
+        new GmailService(
+            new BaseClientService.Initializer(HttpClientInitializer = credential, ApplicationName = ApplicationName)
+        )
 
     // Create the email to send
     let msg = new MimeMessage()
@@ -58,10 +60,13 @@ let sendEmailWithAttachment () =
     // Encode the email as base64url and prepare it for sending
     use memoryStream = new MemoryStream()
     msg.WriteTo(memoryStream)
-    let raw = Convert.ToBase64String(memoryStream.ToArray())
-                .Replace('+', '-')
-                .Replace('/', '_')
-                .Replace("=", "")
+
+    let raw =
+        Convert
+            .ToBase64String(memoryStream.ToArray())
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .Replace("=", "")
 
     let gmailMessage = new Message(Raw = raw)
 

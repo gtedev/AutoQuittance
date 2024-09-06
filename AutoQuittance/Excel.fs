@@ -4,13 +4,14 @@ open DocumentFormat.OpenXml
 open DocumentFormat.OpenXml.Packaging
 open DocumentFormat.OpenXml.Spreadsheet
 open System.IO
+open System
 open Config
 
 let (|HasCellValue|_|) (cell: Cell) =
     if (cell.CellValue = null) then None else Some()
 
 let (|IsSharedString|_|) (cell: Cell) =
-    if (cell.DataType.Value <> CellValues.SharedString) then
+    if (cell.DataType = null || cell.DataType.Value <> CellValues.SharedString) then
         None
     else
         Some(int cell.CellValue.InnerText)
@@ -39,7 +40,7 @@ let updateCellValue (cell: Cell) (newCellValue: string) =
 
 let replaceTextInExcel (t: Template) =
     // 1. Copy the template file
-    File.Copy(t.pathFile, t.outputFile)
+    File.Copy(t.pathFile, t.outputFile, true)
 
     // 2. Then, open it
     use document = SpreadsheetDocument.Open(t.outputFile, true)
@@ -54,9 +55,34 @@ let replaceTextInExcel (t: Template) =
     |> Seq.collect (fun row -> row.Elements<Cell>())
     |> Seq.choose (tryGetCellValue document)
     |> Seq.iter (fun (cell, cellValue) ->
+
+        let computedProperties = 
+              t.displayComputedProperties
+              |> List.choose(fun x ->
+                  let today = DateTime.Now
+
+                  match x with
+                  | "StartDate" -> 
+                        let starDate = DateTime(today.Year, today.Month, t.period.startDayInMonth)
+                        Some ("StartDate", starDate.ToString("dd/MM/yyyy"))
+                  | "EndDate" -> 
+                        let starDate = DateTime(today.Year, today.Month, t.period.startDayInMonth)
+                        let endDate = if t.period.startDayInMonth = 1 then
+                                        DateTime(today.Year, today.Month, DateTime.DaysInMonth(today.Year, today.Month)) 
+                                      else 
+                                        starDate.AddMonths(1)
+                        Some ("EndDate", endDate.ToString("dd/MM/yyyy"))
+
+                  | "SentDate" ->
+                        let senDate = DateTime(today.Year, today.Month, t.period.sendDayInMonth)
+                        Some ("SentDate", senDate.ToString("dd/MM/yyyy")) 
+                  | _ -> None
+              )
+
         let newCellValue =
-            t.properties
+            t.displayCustomProperties
             |> Map.toList
+            |> List.append computedProperties
             |> List.map (fun (key, value) -> "{{" + key + "}}", value)
             |> Map<string, string>
             |> Map.fold replaceText cellValue
